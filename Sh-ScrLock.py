@@ -1,9 +1,11 @@
 ''' -----------------------
 program: Sh-ScrLock
-version: 2.1.20191018
+version: 2.2.20210505
 
 This Python program switches On/Off Screen Saver and Screen Locker in Windows 10 via system register.
 May be convenient when you use your PC in different environments (like office and home).
+
+command line: python.exe Sh-ScrLock.py [-on | -off | -ask [-silent | -autoclose [seconds]]]
 ------------------------'''
 
 from winreg import *
@@ -55,6 +57,8 @@ class ScrLockGUI:
         self.window.wm_geometry("+%d+%d" % (self.x, self.y))
         self.window.protocol('WM_DELETE_WINDOW', self.cmd_close)
         self.silentRun = 0
+        self.autoclose = 0
+        self.autoclose_sec = 0
         self.window.withdraw()
     
     def _write_reg_values(self, flagOn):
@@ -69,11 +73,9 @@ class ScrLockGUI:
 
     def cmd_on(self):
         self._update_panel_info([1,self._write_reg_values(1)])
-        print("cmd ON")
     
     def cmd_off(self):
         self._update_panel_info([0,self._write_reg_values(0)])
-        print("cmd OFF")
 
     def panel_buttons(self):
         self.frameButtons = Frame(self.window)
@@ -87,13 +89,14 @@ class ScrLockGUI:
         self.buttonOn = Button(self.frameButtons, text="Switch ON", width=10, command=self.cmd_on)
         self.buttonOn.pack(side=RIGHT, padx=5, pady=5)
 
-
     def _update_panel_info(self, opStatus):
         txtAction = ["Switch OFF", "Switch ON"]
         txtError = [". ERROR writing Registry!", ""]
+        txtCloseSeconds = ("\n(Auto-Close in " + str(self.autoclose_sec) + 
+            " seconds)" + 45 * " ") if self.autoclose else ""
         winsound.MessageBeep(winsound.MB_OK)
         self.frameInfo.destroy()
-        self.panel_info(txtAction[opStatus[0]] + txtError[opStatus[1]])        
+        self.panel_info(txtAction[opStatus[0]] + txtError[opStatus[1]] + txtCloseSeconds)
     
     def panel_info(self, strTxt):
         self.frameInfo = LabelFrame(self.window, bd=4, relief=RIDGE, text="System Current State:")
@@ -109,6 +112,8 @@ class ScrLockGUI:
 
     def main_cycle(self):
         if self.silentRun: sys.exit()
+        if self.autoclose:
+            self.window.after((self.autoclose_sec * 1000), self.cmd_close)
         self.window.deiconify()
         self.window.mainloop()
 
@@ -120,13 +125,21 @@ def check_mode():
     except:
         opMode = "-ask"
     silentMode = 0
+    autoCloseMode = 0
+    autoClose_sec = 5
     try:
         if (sys.argv[2] == "-silent") and (opMode != "-ask"): 
             silentMode = 1
+        elif (sys.argv[2] == "-autoclose"):
+            autoCloseMode = 1
+            try:
+                autoClose_sec = int(sys.argv[3])
+            except:
+                pass
     except:
         pass
 
-    return opMode, silentMode
+    return opMode, silentMode, autoCloseMode, autoClose_sec
 
 
 def main():
@@ -135,13 +148,17 @@ def main():
     winRegistry = ShWinReg()
     objGUI = ScrLockGUI(reg_vals, winRegistry)
 
+    if runMode[1]: objGUI.silentRun = 1
+    if runMode[2]: objGUI.autoclose = 1
+    if runMode[3]: objGUI.autoclose_sec = runMode[3]
+
     if runMode[0] == "-on":
          objGUI.cmd_on()
     elif runMode[0] == "-off":
         objGUI.cmd_off()
     else:
         pass #command "ask"
-    if runMode[1]: objGUI.silentRun = 1
+
     objGUI.main_cycle()
 
 
