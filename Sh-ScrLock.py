@@ -93,7 +93,7 @@ class ScrLockGUI:
         txtAction = ["Switch OFF", "Switch ON"]
         txtError = [". ERROR writing Registry!", ""]
         txtCloseSeconds = ("\n(Auto-Close in " + str(self.autoclose_sec) + 
-            " seconds)" + 45 * " ") if self.autoclose else ""
+            " seconds)") if self.autoclose else ""
         winsound.MessageBeep(winsound.MB_OK)
         self.frameInfo.destroy()
         self.panel_info(txtAction[opStatus[0]] + txtError[opStatus[1]] + txtCloseSeconds)
